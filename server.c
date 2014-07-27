@@ -116,12 +116,12 @@ server_t *server_init(unsigned short int port)
 		}
 
 	s->bcast_addr.sin_family = AF_INET;
-    s->bcast_addr.sin_port = htons(port);
-    s->bcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+	s->bcast_addr.sin_port = htons(port);
+	s->bcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
 	name.sin_family = AF_INET;
 	name.sin_port = htons (port);
-	name.sin_addr.s_addr = htonl (INADDR_ANY);
+	name.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind (s->sock, (struct sockaddr *) &name, sizeof (name)) < 0)
 		{
 		error(sl, "bind: %m");

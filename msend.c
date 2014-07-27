@@ -58,13 +58,12 @@ int main(int argc, char *argv[])
 	*(b-1)='\0';
 
 	sin.sin_family=AF_INET;
-	sin.sin_port=htons(atoi(argv[2]));
-	sin.sin_addr.s_addr=inet_addr("192.168.1.50");
+	sin.sin_port=htons(0);
+	sin.sin_addr.s_addr=inet_addr(argv[1]);
 
 	if(bind(s, (const struct sockaddr*)&sin, sizeof(sin)))
 		{
 		perror("can't bind so can't get response");
-		return 1;
 		}
 	
 	printf("send '%s'\n", buf);
