@@ -84,6 +84,11 @@ int main(int argc, char *argv[])
 
 	info(ml, "lib init done");
 	player=player_init();
+	if(player==NULL)
+		{
+		fatal(ml, "failed to init player");
+		return 1;
+		}
 	player->onEOF=&playlist_eof;
 	info(ml, "player init done\n");
 	server=server_init(cfg_get_int("mserver.port"));

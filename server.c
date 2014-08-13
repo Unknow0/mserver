@@ -40,7 +40,9 @@ logger_t *sl=NULL;
 void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr *si, int silen)
 	{
 	buf[len]=0;
-	printf("%d: %s\n", len, buf);
+	char str[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, si, str, INET_ADDRSTRLEN);
+	debug(sl, "server_parse_msg(%d, %s, %d, %s)\n", sock, buf, len, str);
 
 	if(strncmp("resume", buf, 6)==0)
 		player_resume(player);
@@ -65,20 +67,55 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 		else if(strncmp("repeat", buf, 6)==0)
 			playlist_flags_set(PLAYLIST_REPEAT);
 		}
+	else if(strncmp("filter", buf, 6)==0)
+		{
+		if(len>12)
+			{
+			if(strncmp("add", buf+7, 3)==0)
+				playlist_filter_add(buf+11);
+			else if(strncmp("del", buf+7, 3)==0)
+				playlist_filter_del(buf+11);
+			}
+		}
 	else if(strncmp("lib", buf, 3)==0)
 		{
-		char *b=malloc(2+lib_str->chunk_size);
 		struct str_chunk *c=lib_str->head;
+		char *b=malloc(2+lib_str->chunk_size);
 		unsigned short int i=0;
 		while(c!=NULL)
 			{
-			memcpy(b, &i, 2);
-			memcpy(b+2, c->data, c->len);
-			sendto(sock, b, c->len+2, 0, si, silen);
-			c=c->next;
 			i++;
+			c=c->next;
 			}
-		debug(sl, "writed %hu chunk", i);
+		c=lib_str->head;
+		if(len>4) // index asked
+			{
+			int off=atoi(buf+4);
+			while(c!=NULL && i>off)
+				{
+				c=c->next;
+				i--;
+				}
+			memcpy(b, &i, 2);
+			if(c!=NULL)
+				{
+				memcpy(b+2, c->data, c->len);
+				sendto(sock, b, c->len+2, 0, si, silen);
+				}
+			else
+				sendto(sock, b, 2, 0, si, silen);
+			}
+		else	// send everything
+			{
+			while(c!=NULL)
+				{
+				i--;
+				memcpy(b, &i, 2);
+				memcpy(b+2, c->data, c->len);
+				sendto(sock, b, c->len+2, 0, si, silen);
+				c=c->next;
+				}
+			}
 		}
 	printf("done server_parse_msg\n");
 	}

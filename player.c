@@ -154,7 +154,7 @@ player_t *player_init()
 	GstBus *bus;
 	player_t *p=malloc(sizeof(player_t));
 
-	p->play = gst_element_factory_make ("playbin2", "gst-player");
+	p->play = gst_element_factory_make ("playbin", "gst-player");
 
 	if(!p->play)
 		{
