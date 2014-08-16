@@ -117,7 +117,6 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 				}
 			}
 		}
-	printf("done server_parse_msg\n");
 	}
 
 void server_deinit(server_t *s)

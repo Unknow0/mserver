@@ -48,9 +48,7 @@ const char *playlist_next()
 		current=rand()%playlist->size;
 	else
 		current++;
-	printf("get %d / %d\n", current, playlist->size);
 	lib_entry *e=chunked_list_get(playlist, current);
-	printf("%s: %d - %s\n", e->path, e->track, e->name);
 	return e->path;
 	}
 

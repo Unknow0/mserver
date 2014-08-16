@@ -36,7 +36,6 @@ void player_play(player_t *p, const char *file)
 	strcat(path, file);
 
 	gchar *uri=g_filename_to_uri(path, NULL, NULL);
-	printf("uri: %s\n", uri);
 	gst_element_set_state (p->play, GST_STATE_READY);
 	g_object_set(G_OBJECT (p->play), "uri", uri, NULL);
 	g_free (uri);
@@ -127,14 +126,7 @@ int player_metadata(char *file, void (*callback)(const GstTagList *, const gchar
 
 	msg = gst_bus_timed_pop_filtered (GST_ELEMENT_BUS (metadata), GST_CLOCK_TIME_NONE, GST_MESSAGE_ASYNC_DONE | GST_MESSAGE_TAG | GST_MESSAGE_ERROR);
 	if(GST_MESSAGE_TYPE (msg) == GST_MESSAGE_ERROR)
-		{
-		GError *err = NULL;
-
-		gst_message_parse_error (msg, &err, NULL);
-		g_printerr ("%s: %s\n", file, err->message);
-		g_error_free (err);
 		ret=1;
-		}
 	else if (GST_MESSAGE_TYPE (msg) == GST_MESSAGE_TAG)
 		{
 		gst_message_parse_tag (msg, &tags);
