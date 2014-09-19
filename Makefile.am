@@ -17,9 +17,9 @@ mserver_SOURCES=\
 	src/server.h \
 	src/lib.h \
 	src/main.c \
-	src/player.c \
 	src/playlist.c \
 	src/server.c
+mserver_LDADD=$(DEPS_LIBS)
 
 ## TODO
 ##pkgconfigdir=$(libdir)/pkgconfig

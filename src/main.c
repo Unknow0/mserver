@@ -15,19 +15,27 @@
  * with mserver; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  ******************************************************************************/
-#include <bcm_host.h>
+
+#include "config.h"
+#ifdef HAVE_LIBBCM_HOST
+#	include <bcm_host.h>
+#endif
 #include <json/json.h>
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
 
+#include <libavdevice/avdevice.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavfilter/avfilter.h>
+
 #include <logger.h>
 #include <cfg.h>
-
 #include <container/string.h>
+#include <libffplay.h>
 
 #include "server.h"
-#include "player.h"
 #include "lib.h"
 #include "playlist.h"
 
@@ -45,9 +53,17 @@ void close_handler(int sig)
 int main(int argc, char *argv[])
 	{
 	struct sigaction act;
+#ifdef HAVE_LIBBCM_HOST
 	bcm_host_init();
+#endif
 	logger_init();
-	gst_init(&argc, &argv);
+
+	av_log_set_level(40);
+	av_register_all();
+	avdevice_register_all();
+	avcodec_register_all();
+	avfilter_register_all();
+
 	string_init();
 	ml=get_logger("mserver");
 	info(ml, "Starting mserver");
@@ -75,24 +91,32 @@ int main(int argc, char *argv[])
 		return 1;
 		}
 
+	char *fmt=cfg_get_string("mserver.audio_fmt");
+	char *file=cfg_get_string("mserver.audio_file");
+	player=player_init(file, fmt);
+	if(!player)
+		{
+		fatal(ml, "failed to init player");
+		return 1;
+		}
+	info(ml, "player init done\n");
+
 	if(lib_init(cfg_get_string("mserver.dbfile"), cfg_get_string("mserver.libdir")))
 		{
 		fatal(ml, "error while initializing in db");
 		return 1;
 		}
 	lib_str_init();
+	playlist_init();
+	player->onEof=&playlist_eof;
 
 	info(ml, "lib init done");
-	player=player_init();
-	if(player==NULL)
+	server=server_init(cfg_get_int("mserver.port"));
+	if(!server)
 		{
-		fatal(ml, "failed to init player");
+		error(ml, "failed to init server");
 		return 1;
 		}
-	player->onEOF=&playlist_eof;
-	info(ml, "player init done\n");
-	server=server_init(cfg_get_int("mserver.port"));
-
 	info(ml, "starting server");
 	server_mainloop(server);
 

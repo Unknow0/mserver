@@ -20,39 +20,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gst/gst.h>
 
 #include <logger.h>
 #include "lib.h"
 
 chunked_list_t *lib;
 char *lib_path;
+size_t lib_path_size;
 size_t lib_count=0;
 
 logger_t *ll=NULL;
 
-void tag_reader(const GstTagList *list, const gchar *msg, gpointer data)
+void tag_reader(const char *name, const char *value, void* data)
 	{
 	unsigned int i;
 	char *tmp;
 	lib_entry *entry=(lib_entry*)data;
-	if(gst_tag_list_get_string(list, GST_TAG_ARTIST, &tmp))
-		{
-		entry->group=string_create_unique(tmp);
-		g_free(tmp);
-		}
-	if(gst_tag_list_get_string(list, GST_TAG_ALBUM, &tmp))
-		{
-		entry->album=string_create_unique(tmp);
-		g_free(tmp);
-		}
-	gst_tag_list_get_string(list, GST_TAG_TITLE, &entry->name);
-	if(gst_tag_list_get_uint(list, GST_TAG_TRACK_NUMBER, &i))
-		entry->track=i;
+	
+	if(strcmp(name, "title")==0)
+		entry->name=strdup(value);
+	else if(strcmp(name, "artist")==0)
+		entry->group=string_create_unique(value);
+	else if(strcmp(name, "album")==0)
+		entry->album=string_create_unique(value);
+	else if(strcmp(name, "track")==0)
+		entry->track=atoi(value);
+	else
+		info(ll, "found %s: %s", name, value);
 	}
 
-char *n;
-int l=0;
+static char *n;
+static size_t l=0;
 int filecount;
 lib_entry *entry;
 string_t *empty;
@@ -101,18 +99,12 @@ void parse_dir(const char *name)
 			entry->album=empty;
 			entry->name=(char*)empty->str;
 			entry->track=0;
-			if(!player_metadata(n, &tag_reader, entry))
+
+			if(player_metadata(n, &tag_reader, entry))
 				{
-				debug(ll, "%s: %d - %s (%X)", entry->path, entry->track, entry->name, entry->name);
 				int ret=chunked_list_add(lib, entry);
 				if(ret)
 					{
-					if(entry->group!=empty)
-						g_free(entry->group);
-					if(entry->album!=empty)
-						g_free(entry->album);
-					if(entry->name!=empty->str)
-						g_free(entry->name);
 					error(ll, "chunked_list_add returned: %d", ret);
 					}
 				else
@@ -126,6 +118,19 @@ void parse_dir(const char *name)
 	closedir(dir);
 	}
 
+const char *lib_canonize(const char *f)
+	{
+	size_t s=strlen(f)+lib_path_size+1;
+	if(s>l)
+		{
+		l=s;
+		n=realloc(n, l);
+		}
+	n[lib_path_size]=0;
+	strcat(n, f);
+	return n;
+	}
+
 void lib_deinit()
 	{
 	info(ll, "lib closing");
@@ -134,7 +139,6 @@ void lib_deinit()
 
 int lib_init(char *dbfile, char *libdir)
 	{
-	lib_path=libdir;
 	lib_count=0;
 	empty=string_create_unique("");
 	ll=get_logger("mserver.lib");
@@ -154,9 +158,10 @@ int lib_init(char *dbfile, char *libdir)
 		tmp[s]='/', tmp[s+1]=0;
 		libdir=tmp;
 		}
+	lib_path=libdir;
+	lib_path_size=strlen(lib_path);
 	filecount=0;
 	parse_dir(libdir);
-	free(n);
 
 	return 0;
 	}

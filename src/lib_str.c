@@ -28,7 +28,7 @@ void lib_str_init()
 	{
 	lib_str=chunked_string_create(1024);
 	lib_str_reset();
-	lib_str_print();
+//	lib_str_print();
 	}
 
 
@@ -65,10 +65,13 @@ void lib_str_reset()
 
 void lib_str_print()
 	{
+	size_t i;
 	struct str_chunk *c=lib_str->head;
 	while(c!=NULL)
 		{
-		printf("%.1024s", c->data);
+		for(i=0; i<c->len; i++)
+			printf("%c", c->data[i]);
 		c=c->next;
 		}
+	printf("\n");
 	}

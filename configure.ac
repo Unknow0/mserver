@@ -3,9 +3,11 @@
 
 AC_PREREQ([2.69])
 AC_INIT([mserver], [1.0])
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([tools])
+
 AM_INIT_AUTOMAKE([foreign])
 
-AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([src/config.h])
 
@@ -26,18 +28,8 @@ AC_CHECK_LIB([bcm_host], [bcm_host_init])
 AC_CHECK_LIB([json], [json_object_new_object], [], 
 	AC_MSG_ERROR([install json-c: https://github.com/json-c/json-c/])
 	)
-AC_CHECK_LIB([container], [chunked_list_create], [], 
-	AC_MSG_ERROR([install container: https://github.com/Unknow0/libcontainer/])
-	)
-AC_CHECK_LIB([cfg], [cfg_init], [], 
-	AC_MSG_ERROR([install libcfg: https://github.com/Unknow0/libcfg/])
-	)
-AC_CHECK_LIB([logger], [get_logger], [], 
-	AC_MSG_ERROR([install logger: https://github.com/Unknow0/logger/])
-	)
-AC_CHECK_LIB([gstreamer-1.0], [gst_version], [],
-	AC_MSG_ERROR([install gstreamer-1.0 http://gstreamer.freedesktop.org/])
-	)
+
+PKG_CHECK_MODULES([DEPS], [libavdevice libavformat libavcodec libavutil libavfilter libffplay logger libcfg container])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h netdb.h stdlib.h string.h sys/socket.h unistd.h])

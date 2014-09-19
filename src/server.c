@@ -24,11 +24,11 @@
 #include <json/json.h>
 
 #include <logger.h>
+#include <libffplay.h>
 
 #include "lib.h"
 #include "playlist.h"
 #include "server.h"
-#include "player.h"
 
 #define BUFLEN 1024
 
@@ -45,19 +45,24 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 	debug(sl, "server_parse_msg(%d, %s, %d, %s)\n", sock, buf, len, str);
 
 	if(strncmp("resume", buf, 6)==0)
-		player_resume(player);
+		player_setstate(player, PLAYER_STATE_PLAY);
 	else if(strncmp("pause", buf, 5)==0)
-		player_pause(player);
+		player_setstate(player, PLAYER_STATE_PAUSE);
 	else if(strncmp("stop", buf, 5)==0)
-		player_stop(player);
+		player_setstate(player, PLAYER_STATE_STOP);
 	else if(strncmp("next", buf, 4)==0)
-		player_next(player);
+		{
+		const char *file=lib_canonize(playlist_next());
+		player_play(player, file);
+		}
 	else if(strncmp("play", buf, 4)==0)
 		{
+		const char *file;
 		if(len<=5)
-			player_next(player);
+			file=lib_canonize(playlist_next());
 		else
-			player_play(player, buf+5);
+			file=lib_canonize(buf+5);
+		player_play(player, file);
 		}
 	else if(strncmp("set ", buf, 4)==0)
 		{

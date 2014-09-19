@@ -18,11 +18,13 @@
 #ifndef _PLAYLIST_H
 #define _PLAYLIST_H
 
-#include "player.h"
+#include <libffplay.h>
 
 #define PLAYLIST_RANDOM	(1<<0)
 #define PLAYLIST_REPEAT (1<<1)
 #define PLAYLIST_SINGLE (1<<2)
+
+void playlist_init();
 
 const char *playlist_next();
 

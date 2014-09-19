@@ -34,6 +34,8 @@ typedef struct
 int lib_init(char *libfile, char *libdir);
 void lib_deinit();
 
+const char *lib_canonize(const char *);
+
 void lib_str_init();
 void lib_str_reset();
 void lib_str_print();

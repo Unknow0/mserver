@@ -44,10 +44,14 @@ const char *playlist_next()
 		next=NULL;
 		return n;
 		}
+	if(playlist->size==0)
+		return NULL;
 	if(flags&PLAYLIST_RANDOM!=0)
 		current=rand()%playlist->size;
 	else
 		current++;
+	if(current>=playlist->size)
+		return NULL;
 	lib_entry *e=chunked_list_get(playlist, current);
 	return e->path;
 	}
@@ -143,13 +147,18 @@ void playlist_reset()
 	while(iterator_has_next(it))
 		{
 		lib_entry *e=iterator_next(it);
-		iterator_reset(i);
-		while(iterator_has_next(i))
+		if(filters->size>0)
 			{
-			char *f=iterator_next(i);
-			if(playlist_filter_match(e, f))
-				chunked_list_add(playlist, iterator_next(it));
+			iterator_reset(i);
+			while(iterator_has_next(i))
+				{
+				char *f=iterator_next(i);
+				if(playlist_filter_match(e, f))
+					chunked_list_add(playlist, iterator_next(it));
+				}
 			}
+		else
+			chunked_list_add(playlist, iterator_next(it));
 		}
 	free(i);
 	free(it);
@@ -177,6 +186,6 @@ void playlist_eof(player_t *p)
 	{
 	if((flags&PLAYLIST_SINGLE)==0)
 		{
-		player_play(p, playlist_next());
+		player_play(p, lib_canonize(playlist_next()));
 		}
 	}

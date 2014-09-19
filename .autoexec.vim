@@ -1,5 +1,5 @@
 let s:name = "mserver"
-if match(expand("%:e"), "\.[hc]$")>=0
+if match(expand("%:e"), "[hc]$")>=0
 	kZ
 	0
 	setlocal noai
