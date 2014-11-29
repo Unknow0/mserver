@@ -21,7 +21,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
-#include <json/json.h>
+#include <json-c/json.h>
 
 #include <logger.h>
 #include <libffplay.h>
@@ -81,6 +81,10 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 			else if(strncmp("del", buf+7, 3)==0)
 				playlist_filter_del(buf+11);
 			}
+		}
+	else if(strncmp("status", buf, 6)==0)
+		{
+
 		}
 	else if(strncmp("lib", buf, 3)==0)
 		{

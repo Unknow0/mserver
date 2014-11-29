@@ -31,7 +31,12 @@ typedef struct
 	unsigned int track;
 	} lib_entry;
 
-int lib_init(char *libfile, char *libdir);
+typedef struct library
+	{
+
+	} lib_t;
+
+int lib_init(const char *libfile, const char *libdir);
 void lib_deinit();
 
 const char *lib_canonize(const char *);
@@ -42,7 +47,7 @@ void lib_str_print();
 
 extern chunked_list_t *lib;
 extern size_t lib_count;
-extern char *lib_path;
+extern const char *lib_path;
 extern chunked_string_t *lib_str;
 
 #endif

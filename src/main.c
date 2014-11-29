@@ -20,7 +20,7 @@
 #ifdef HAVE_LIBBCM_HOST
 #	include <bcm_host.h>
 #endif
-#include <json/json.h>
+#include <json-c/json.h>
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
@@ -39,6 +39,8 @@
 #include "lib.h"
 #include "playlist.h"
 
+#include <malloc.h>
+
 player_t *player;
 server_t *server;
 
@@ -56,6 +58,7 @@ int main(int argc, char *argv[])
 #ifdef HAVE_LIBBCM_HOST
 	bcm_host_init();
 #endif
+	cfg_init();
 	logger_init();
 
 	av_log_set_level(40);
@@ -70,6 +73,9 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 
 	act.sa_handler=&close_handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags=0;
+
 	sigaction(SIGHUP, &act, NULL);
 	sigaction(SIGINT, &act, NULL);
 	sigaction(SIGQUIT, &act, NULL);
@@ -91,8 +97,8 @@ int main(int argc, char *argv[])
 		return 1;
 		}
 
-	char *fmt=cfg_get_string("mserver.audio_fmt");
-	char *file=cfg_get_string("mserver.audio_file");
+	const char *fmt=cfg_get_string("mserver.audio_fmt");
+	const char *file=cfg_get_string("mserver.audio_file");
 	player=player_init(file, fmt);
 	if(!player)
 		{
@@ -108,7 +114,7 @@ int main(int argc, char *argv[])
 		}
 	lib_str_init();
 	playlist_init();
-	player->onEof=&playlist_eof;
+	player->on_eof=&playlist_eof;
 
 	info(ml, "lib init done");
 	server=server_init(cfg_get_int("mserver.port"));
@@ -122,7 +128,14 @@ int main(int argc, char *argv[])
 
 	playlist_close();
 	lib_deinit();
+	info(ml, "destoying player");
 	player_destroy(player);
+	info(ml, "deinit logger");
+	logger_deinit();
+	printf("deinit cfg\n");
+	cfg_deinit();
+#ifdef HAVE_LIBBCM_HOST
 	bcm_host_deinit();
+#endif
 	return 0;
 	}

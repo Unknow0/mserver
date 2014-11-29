@@ -25,11 +25,17 @@
 #include "lib.h"
 
 chunked_list_t *lib;
-char *lib_path;
+const char *lib_path;
 size_t lib_path_size;
 size_t lib_count=0;
 
+char *lib_dbfile;
+
 logger_t *ll=NULL;
+
+int lib_write()
+	{
+	}
 
 void tag_reader(const char *name, const char *value, void* data)
 	{
@@ -45,8 +51,6 @@ void tag_reader(const char *name, const char *value, void* data)
 		entry->album=string_create_unique(value);
 	else if(strcmp(name, "track")==0)
 		entry->track=atoi(value);
-	else
-		info(ll, "found %s: %s", name, value);
 	}
 
 static char *n;
@@ -106,12 +110,16 @@ void parse_dir(const char *name)
 				if(ret)
 					{
 					error(ll, "chunked_list_add returned: %d", ret);
+					free(entry->path);
 					}
 				else
 					lib_count++;
 				}
 			else
+				{
 				warn(ll, "%s: invalid file", n);
+				free(entry->path);
+				}
 			}
 		}
 	info(ll, "parsed %d files, %d keept", filecount, lib_count);
@@ -135,14 +143,30 @@ void lib_deinit()
 	{
 	info(ll, "lib closing");
 	// TODO free lib
+	
+	chunked_list_destroy(lib);
+
+	string_destroy(empty);
 	}
 
-int lib_init(char *dbfile, char *libdir)
+void lib_entry_destructor(void *v)
+	{
+	lib_entry *e=(lib_entry *)v;
+	free(e->path);
+	if(e->name!=empty->str)
+		free(e->name);
+	if(e->group!=empty)
+		string_destroy(e->group);
+	if(e->album!=empty)
+		string_destroy(e->album);
+	}
+
+int lib_init(const char *dbfile, const char *libdir)
 	{
 	lib_count=0;
 	empty=string_create_unique("");
 	ll=get_logger("mserver.lib");
-	lib=chunked_list_create(512, sizeof(lib_entry));
+	lib=chunked_list_create(512, sizeof(lib_entry), &lib_entry_destructor);
 	if(lib==0)
 		{
 		error(ll, "failed to allocate lib");
