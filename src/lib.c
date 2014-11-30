@@ -142,9 +142,10 @@ const char *lib_canonize(const char *f)
 void lib_deinit()
 	{
 	info(ll, "lib closing");
-	// TODO free lib
 	
 	chunked_list_destroy(lib);
+	free((void*)lib_path);
+	free(n);
 
 	string_destroy(empty);
 	}
@@ -182,10 +183,13 @@ int lib_init(const char *dbfile, const char *libdir)
 		tmp[s]='/', tmp[s+1]=0;
 		libdir=tmp;
 		}
+	else
+		libdir=strdup(libdir);
 	lib_path=libdir;
 	lib_path_size=strlen(lib_path);
 	filecount=0;
 	parse_dir(libdir);
+	free(entry);
 
 	return 0;
 	}

@@ -134,6 +134,7 @@ void server_deinit(server_t *s)
 	s->running=0;
 	shutdown(s->sock, SHUT_RDWR);
 	close(s->sock);
+	free(s);
 	}
 
 server_t *server_init(unsigned short int port)

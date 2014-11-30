@@ -28,9 +28,12 @@ void lib_str_init()
 	{
 	lib_str=chunked_string_create(1024);
 	lib_str_reset();
-//	lib_str_print();
 	}
 
+void lib_str_deinit()
+	{
+	chunked_string_destroy(lib_str);
+	}
 
 char buf[5];
 extern logger_t *ll;
