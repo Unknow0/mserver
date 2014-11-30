@@ -61,6 +61,7 @@ void lib_str_reset()
 		chunked_string_add(lib_str, "}");
 		}
 	chunked_string_add(lib_str, "}");
+	iterator_dispose(it);
 	}
 
 void lib_str_print()

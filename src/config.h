@@ -8,10 +8,10 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the `bcm_host' library (-lbcm_host). */
-#define HAVE_LIBBCM_HOST 1
+/* #undef HAVE_LIBBCM_HOST */
 
-/* Define to 1 if you have the `json' library (-ljson). */
-#define HAVE_LIBJSON 1
+/* Define to 1 if you have the `json-c' library (-ljson-c). */
+#define HAVE_LIBJSON_C 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -23,7 +23,7 @@
 #define HAVE_PTHREAD 1
 
 /* Have PTHREAD_PRIO_INHERIT. */
-/* #undef HAVE_PTHREAD_PRIO_INHERIT */
+#define HAVE_PTHREAD_PRIO_INHERIT 1
 
 /* Define to 1 if you have the `socket' function. */
 #define HAVE_SOCKET 1
@@ -57,6 +57,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
+
+/* Who care */
+/* #undef MEMLEAK */
 
 /* Name of package */
 #define PACKAGE "mserver"

@@ -29,8 +29,8 @@ chunked_list_t *filters;
 
 void playlist_init()
 	{
-	playlist=chunked_list_create(512, sizeof(lib_entry));
-	filters=chunked_list_create(10, sizeof(char*));
+	playlist=chunked_list_create(512, sizeof(lib_entry), NULL);
+	filters=chunked_list_create(10, sizeof(char*),NULL);
 
 	playlist_reset();
 	}

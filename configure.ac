@@ -23,9 +23,17 @@ CC="$PTHREAD_CC"
 AC_ARG_ENABLE([msend], AS_HELP_STRING([--disable-msend], [disable msend build]))
 AM_CONDITIONAL([DISABLE_MSEND], [test "x${enable_msend}" = "xno"])
 
+AC_ARG_ENABLE([memleak], AS_HELP_STRING([--enable-memleak], [enable memleak test]))
+AS_IF([test "x${enable_memleak}" = "xyes"], [
+	AM_CONDITIONAL([MEMLEAK], true)
+	AC_DEFINE([MEMLEAK], [1], [Who care])
+	], [
+	AM_CONDITIONAL([MEMLEAK], false)
+	])
+
 # Checks for libraries.
 AC_CHECK_LIB([bcm_host], [bcm_host_init])
-AC_CHECK_LIB([json], [json_object_new_object], [], 
+AC_CHECK_LIB([json-c], [json_object_new_object], [], 
 	AC_MSG_ERROR([install json-c: https://github.com/json-c/json-c/])
 	)
 

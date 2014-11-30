@@ -3,9 +3,9 @@ EXTRA_DIST=README.md
 
 bin_PROGRAMS=mserver
 if !DISABLE_MSEND
-	bin_PROGRAMS+=msend
+bin_PROGRAMS+= msend
 
-	msend_SOURCES=src/msend.c
+msend_SOURCES=src/msend.c
 endif
 
 
@@ -19,6 +19,7 @@ mserver_SOURCES=\
 	src/main.c \
 	src/playlist.c \
 	src/server.c
+
 mserver_LDADD=$(DEPS_LIBS)
 
 ## TODO
