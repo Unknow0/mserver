@@ -51,7 +51,10 @@ const char *playlist_next()
 	else
 		current++;
 	if(current>=playlist->size)
+		{
+		current=0;
 		return NULL;
+		}
 	lib_entry *e=chunked_list_get(playlist, current);
 	return e->path;
 	}
@@ -59,12 +62,14 @@ const char *playlist_next()
 void playlist_close()
 	{
 	}
-
+#include <logger.h>
+extern logger_t *ml;
 void playlist_filter_add(char *f)
 	{
 	char *name=f;
 	char *album=f;
 	char *group=f;
+	info(ml, "filter: '%s'", f);
 	if(f[0]=='~')
 		{
 		if(f[1]=='n')
@@ -86,12 +91,12 @@ void playlist_filter_add(char *f)
 	while(iterator_has_next(it))
 		{
 		e=iterator_next(it);
-		if(name!=NULL && !strcasestr(e->name, name))
-			iterator_remove(it);
-		else if(album!=NULL && !strcasestr(e->album, album))
-			iterator_remove(it);
-		else if(group!=NULL && !strcasestr(e->group, group))
-			iterator_remove(it);
+		info(ml, "	%s %s %s", e->name, e->album->str, e->group->str);
+		if((name!=NULL && strcasestr(e->name, name))
+			 || (album!=NULL && strcasestr(e->album->str, album))
+			 || (group!=NULL && strcasestr(e->group->str, group)))
+			continue;
+		iterator_remove(it);
 		}
 	free(it);
 	chunked_list_add(filters, f);
@@ -103,14 +108,11 @@ void playlist_filter_del(char *f)
 	while(iterator_has_next(it))
 		{
 		char *next=iterator_next(it);
-		if(strcmp(next, f)==0)
-			{
+		if(strcasecmp(next, f)==0)
 			iterator_remove(it);
-			playlist_reset();
-			break;
-			}
 		}
 	free(it);
+	playlist_reset();
 	}
 
 int playlist_filter_match(lib_entry *e, char *f)
@@ -134,8 +136,8 @@ int playlist_filter_match(lib_entry *e, char *f)
 			group=NULL;
 		}
 		return (name==NULL || strcasestr(e->name, name))
-			 && (album==NULL || strcasestr(e->album, album))
-			 && (group==NULL || strcasestr(e->group, group));
+			 || (album==NULL || strcasestr(e->album->str, album))
+			 || (group==NULL || strcasestr(e->group->str, group));
 	}
 
 void playlist_reset()
@@ -149,16 +151,18 @@ void playlist_reset()
 		lib_entry *e=iterator_next(it);
 		if(filters->size>0)
 			{
+			int ok=1;
 			iterator_reset(i);
 			while(iterator_has_next(i))
 				{
 				char *f=iterator_next(i);
-				if(playlist_filter_match(e, f))
-					chunked_list_add(playlist, iterator_next(it));
+				ok&=playlist_filter_match(e, f);
 				}
+			if(ok)
+				chunked_list_add(playlist, iterator_next(it));
 			}
 		else
-			chunked_list_add(playlist, iterator_next(it));
+			chunked_list_add(playlist, e);
 		}
 	free(i);
 	free(it);
