@@ -44,6 +44,7 @@ const char *lib_canonize(const char *);
 void lib_str_init();
 void lib_str_reset();
 void lib_str_print();
+void lib_str_deinit();
 
 extern chunked_list_t *lib;
 extern size_t lib_count;

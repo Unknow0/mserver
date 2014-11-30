@@ -37,6 +37,6 @@ void playlist_flags_toggle(int flags);
 void playlist_eof(player_t *p);
 
 void playlist_reset();
-void playlist_close();
+void playlist_deinit();
 
 #endif

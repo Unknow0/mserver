@@ -59,8 +59,10 @@ const char *playlist_next()
 	return e->path;
 	}
 
-void playlist_close()
+void playlist_deinit()
 	{
+	chunked_list_destroy(filters);
+	chunked_list_destroy(playlist);
 	}
 #include <logger.h>
 extern logger_t *ml;

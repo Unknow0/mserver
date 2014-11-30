@@ -126,14 +126,13 @@ int main(int argc, char *argv[])
 	info(ml, "starting server");
 	server_mainloop(server);
 
-	playlist_close();
+	playlist_deinit();
+	lib_str_deinit();
 	lib_deinit();
-	info(ml, "destoying player");
 	player_destroy(player);
-	info(ml, "deinit logger");
 	logger_deinit();
-	printf("deinit cfg\n");
 	cfg_deinit();
+	string_deinit();
 #ifdef HAVE_LIBBCM_HOST
 	bcm_host_deinit();
 #endif
