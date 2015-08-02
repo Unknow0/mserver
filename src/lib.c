@@ -16,25 +16,90 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  ******************************************************************************/
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #include <logger.h>
+#include <container/iterator.h>
+#include <container/watch.h>
 #include "lib.h"
 
-chunked_list_t *lib;
-const char *lib_path;
-size_t lib_path_size;
-size_t lib_count=0;
-
-char *lib_dbfile;
+int watch_fd;
 
 logger_t *ll=NULL;
 
-int lib_write()
+int lib_write(lib_t *lib)
 	{
+	int fd;
+	iterator_t *it;
+
+	fd=open(lib->dbfile, O_CREAT|O_WRONLY|O_TRUNC, S_IRWXU);
+	if(fd)
+		{
+		write(fd, &lib->entries->size, sizeof(size_t));
+		it=chunked_list_iterator(lib->entries);
+		while(iterator_has_next(it))
+			{
+			lib_entry *e=iterator_next(it);
+			size_t len=strlen(e->path)+strlen(e->group->str)+strlen(e->album->str)+strlen(e->name)+4;
+			write(fd, &len, sizeof(size_t));
+			write(fd, e->path, strlen(e->path)+1);
+			write(fd, e->group->str, e->group->len+1);
+			write(fd, e->album->str, e->album->len+1);
+			write(fd, e->name, strlen(e->name)+1);
+			}
+		free(it);
+		close(fd);
+		}
+	debug(ll, "done reading libfile");
+	}
+
+int lib_read(lib_t *lib)
+	{
+	size_t buf_len=256;
+	char *buf=malloc(buf_len);
+	int fd=open(lib->dbfile, O_RDONLY);
+	if(fd)
+		{
+		lib_entry e;
+		size_t s, l;
+		debug(ll, "reading lib");
+		read(fd, &s, sizeof(size_t));
+		while(s--)
+			{
+			char *b=buf;
+			read(fd, &l, sizeof(size_t));
+			if(l>buf_len)
+				{
+				char *t=realloc(buf, l);
+				if(!t)
+					return 1;
+				// TODO check error
+				buf_len=l;
+				buf=t;
+				b=buf;
+				}
+			read(fd, b, l);
+			e.path=strdup(b);
+			b+=strlen(e.path);
+			e.group=string_create_unique(b);
+			b+=e.group->len;
+			e.album=string_create_unique(b);
+			b+=e.album->len;
+			e.name=strdup(b);
+			chunked_list_add(lib->entries, &e);
+			}
+		close(fd);
+		debug(ll, "done reading lib");
+		}
+	free(buf);
+	return 0;
 	}
 
 void tag_reader(const char *name, const char *value, void* data)
@@ -53,23 +118,43 @@ void tag_reader(const char *name, const char *value, void* data)
 		entry->track=atoi(value);
 	}
 
-static char *n;
-static size_t l=0;
 int filecount;
-lib_entry *entry;
 string_t *empty;
-void parse_dir(const char *name)
+void parse_file(lib_t *lib, char *path, lib_entry *entry)
 	{
-	debug(ll, "parse_dir(%s)", name);
-	int s=strlen(name);
-	struct dirent *d;
-	if(l==0)
+	size_t pathsize=strlen(path)-lib->base_path_size;
+	debug(ll, "parse_file '%s'", path);
+	entry->path=strdup(path+lib->base_path_size);
+	entry->group=empty;
+	entry->album=empty;
+	entry->name=(char*)empty->str;
+	entry->track=0;
+
+	if(player_metadata(path, &tag_reader, entry))
 		{
-		l=s+1;
-		n=malloc(l+1);
-		memcpy(n, name, l);
+		int ret=chunked_list_add(lib->entries, entry);
+		if(ret)
+			{
+			error(ll, "chunked_list_add returned: %d", ret);
+			free(entry->path);
+			}
+		else
+			{ // notify?
+			}
 		}
-	DIR *dir=opendir(name);
+	else
+		{
+		warn(ll, "%s: invalid file", path);
+		free(entry->path);
+		}
+	}
+
+void parse_dir(lib_t *lib, char **name, size_t l, lib_entry *entry)
+	{
+	int s=strlen(*name);
+	struct dirent *d;
+	watch(lib->watch, *name);
+	DIR *dir=opendir(*name);
 	while((d=readdir(dir))!=NULL)
 		{
 		if(d->d_name[0]=='.')	// skip hidden file
@@ -80,11 +165,13 @@ void parse_dir(const char *name)
 			if(l<s+s2+1)
 				{
 				l=s+s2+1;
-				n=realloc(n, l+1);
+				*name=realloc(*name, l+1);
 				}
-			memcpy(n+s, d->d_name, s2+1);
-			n[s+s2]='/'; n[s+s2+1]=0;
-			parse_dir(n);
+			memcpy(*name+s, d->d_name, s2+1);
+			(*name)[s+s2]='/'; (*name)[s+s2+1]=0;
+			debug(ll, "parse_dir(%s)", *name);
+			parse_dir(lib, name, l, entry);
+			debug(ll, "return %s", *name);
 			}
 		else
 			{
@@ -92,60 +179,64 @@ void parse_dir(const char *name)
 			if(l<s+s2)
 				{
 				l=s+s2;
-				n=realloc(n, l+1);
+				*name=realloc(*name, l+1);
 				}
-			memcpy(n+s, d->d_name, s2+1);
-			n[s+s2]=0;
+			memcpy(*name+s, d->d_name, s2+1);
+			(*name)[s+s2]=0;
 			// read file metadata
-			size_t pathsize=strlen(n)-strlen(lib_path);
-			entry->path=strdup(n+strlen(lib_path));
-			entry->group=empty;
-			entry->album=empty;
-			entry->name=(char*)empty->str;
-			entry->track=0;
-
-			if(player_metadata(n, &tag_reader, entry))
-				{
-				int ret=chunked_list_add(lib, entry);
-				if(ret)
-					{
-					error(ll, "chunked_list_add returned: %d", ret);
-					free(entry->path);
-					}
-				else
-					lib_count++;
-				}
-			else
-				{
-				warn(ll, "%s: invalid file", n);
-				free(entry->path);
-				}
+			parse_file(lib, *name, entry);
 			}
 		}
-	info(ll, "parsed %d files, %d keept", filecount, lib_count);
+	info(ll, "parsed %d files, %d keept", filecount, lib->entries->size);
 	closedir(dir);
 	}
 
-const char *lib_canonize(const char *f)
+char *lib_canonize(lib_t *lib, const char *f)
 	{
-	size_t s=strlen(f)+lib_path_size+1;
-	if(s>l)
-		{
-		l=s;
-		n=realloc(n, l);
-		}
-	n[lib_path_size]=0;
-	strcat(n, f);
-	return n;
+	size_t s=strlen(f)+lib->base_path_size+1;
+	char *ret=malloc(s);
+	ret[0]=0;
+	strcat(ret, lib->base_path);
+	strcat(ret, f);
+	return ret;
 	}
 
-void lib_deinit()
+void *check_lib(void *arg)
+	{
+	size_t l;
+	char *n;
+	lib_entry *entry;
+	lib_t *lib=(lib_t *)arg;
+	iterator_t *it=chunked_list_iterator(lib->entries);
+	info(ll, "starting checker");
+	while(iterator_has_next(it))
+		{
+		lib_entry *e=iterator_next(it);
+		char *f=lib_canonize(lib, e->path);
+		debug(ll, "cheking '%s'", f);
+		if(access(f, R_OK))
+			iterator_remove(it);
+		free(f);
+		}
+
+	l=lib->base_path_size+1;
+	n=malloc(l);
+	memcpy(n, lib->base_path, l);
+
+	entry=malloc(sizeof(lib_entry));
+
+	parse_dir(lib, &n, l, entry);
+	free(n);
+	free(entry);
+	}
+
+void lib_destroy(lib_t *lib)
 	{
 	info(ll, "lib closing");
+	lib_write(lib);
 	
-	chunked_list_destroy(lib);
-	free((void*)lib_path);
-	free(n);
+	chunked_list_destroy(lib->entries);
+	free((void*)lib->base_path);
 
 	string_destroy(empty);
 	}
@@ -162,34 +253,92 @@ void lib_entry_destructor(void *v)
 		string_destroy(e->album);
 	}
 
-int lib_init(const char *dbfile, const char *libdir)
+void lib_watch_event(struct inotify_event *e, const char *path, void *payload)
 	{
-	lib_count=0;
-	empty=string_create_unique("");
-	ll=get_logger("mserver.lib");
-	lib=chunked_list_create(512, sizeof(lib_entry), &lib_entry_destructor);
-	if(lib==0)
+	lib_entry entry;
+	lib_t *lib=(lib_t*)payload;
+	size_t l=strlen(path)+strlen(e->name)+1;
+	char *f=malloc(l+1);
+	strcpy(f, path);
+	strcat(f, e->name);
+	if(e->mask&IN_CLOSE_WRITE || e->mask&IN_CREATE || e->mask&IN_MOVED_TO)
 		{
-		error(ll, "failed to allocate lib");
-		return 1;
+		struct stat buf;
+		stat(f, &buf);
+		if(S_ISDIR(buf.st_mode))
+			{
+			f[l-1]='/';
+			f[l]=0;
+			parse_dir(lib, &f, l, &entry);
+			}
+		else
+			parse_file(lib, f, &entry);
+		}
+	else if(e->mask&IN_DELETE || e->mask&IN_DELETE_SELF || e->mask&IN_MOVED_FROM)
+		{
+		iterator_t *it=chunked_list_iterator(lib->entries);
+		while(iterator_has_next(it))
+			{
+			lib_entry *e=iterator_next(it);
+			if(strncmp(f, e->path, l-1)==0)
+				iterator_remove(it);
+			}
+		}
+	}
+
+lib_t *lib_create(const char *dbfile, const char *libdir)
+	{
+	lib_t *lib=malloc(sizeof(lib_t));
+	if(!lib)
+		return NULL;
+	lib->watch=watch_create(lib);
+	if(!lib->watch)
+		{
+		error(ll, "failed to create watcher.");
+		goto err;
+		}
+	lib->watch->event=lib_watch_event;
+
+	empty=string_create_unique("");
+	ll=get_logger("lib");
+	lib->entries=chunked_list_create(512, sizeof(lib_entry), &lib_entry_destructor);
+	if(!lib->entries)
+		{
+		error(ll, "failed to allocate lib.");
+		goto err;
 		}
 
-	entry=malloc(sizeof(lib_entry));
 	int s=strlen(libdir);
 	if(libdir[s-1]!='/')
 		{
 		char *tmp=malloc(s+2);
 		strcpy(tmp, libdir);
-		tmp[s]='/', tmp[s+1]=0;
+		tmp[s++]='/'; tmp[s]=0;
 		libdir=tmp;
 		}
 	else
 		libdir=strdup(libdir);
-	lib_path=libdir;
-	lib_path_size=strlen(lib_path);
+	lib->base_path=libdir;
+	lib->base_path_size=s;
 	filecount=0;
-	parse_dir(libdir);
-	free(entry);
 
-	return 0;
+	
+	lib->dbfile=strdup(dbfile);
+	lib_read(lib);
+	pthread_create(&lib->check_thread, NULL, check_lib, lib);
+	pthread_join(lib->check_thread, NULL);
+//	check_lib(lib);
+
+	return lib;
+
+err:
+	if(lib)
+		{
+		if(lib->entries)
+			chunked_list_destroy(lib->entries);
+		if(lib->watch)
+			watch_destroy(lib->watch);
+		free(lib);
+		}
+	return NULL;
 	}

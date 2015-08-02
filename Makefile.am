@@ -18,7 +18,8 @@ mserver_SOURCES=\
 	src/lib.h \
 	src/main.c \
 	src/playlist.c \
-	src/server.c
+	src/server.c \
+	src/lcg.c
 
 mserver_LDADD=$(DEPS_LIBS)
 

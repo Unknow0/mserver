@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <container/chunked_list.h>
 #include "playlist.h"
-#include "lib.h"
+#include "lcg.h"
 
 int flags;
 
@@ -27,12 +27,18 @@ char *next=NULL;
 chunked_list_t *playlist;
 chunked_list_t *filters;
 
+lcg_state *lcg;
+size_t last;
+
 void playlist_init()
 	{
 	playlist=chunked_list_create(512, sizeof(lib_entry), NULL);
 	filters=chunked_list_create(10, sizeof(char*),NULL);
 
 	playlist_reset();
+	srandom(time(NULL));
+	lcg=lcg_create(playlist->size);
+	last=lcg_next(lcg);
 	}
 
 const char *playlist_next()
@@ -47,7 +53,11 @@ const char *playlist_next()
 	if(playlist->size==0)
 		return NULL;
 	if(flags&PLAYLIST_RANDOM!=0)
-		current=rand()%playlist->size;
+		{
+		current=lcg_next(lcg);
+		if(current==last)
+			lcg_reset(lcg, playlist->size);
+		}
 	else
 		current++;
 	if(current>=playlist->size)
@@ -147,7 +157,7 @@ void playlist_reset()
 	chunked_list_clear(playlist);
 
 	iterator_t *i=chunked_list_iterator(filters);
-	iterator_t *it=chunked_list_iterator(lib);
+	iterator_t *it=chunked_list_iterator(lib->entries);
 	while(iterator_has_next(it))
 		{
 		lib_entry *e=iterator_next(it);
@@ -192,6 +202,13 @@ void playlist_eof(player_t *p)
 	{
 	if((flags&PLAYLIST_SINGLE)==0)
 		{
-		player_play(p, lib_canonize(playlist_next()));
+		char *f=lib_canonize(lib, playlist_next());
+		player_play(p, f);
+		free(f);
 		}
+	}
+
+lib_entry *playlist_current()
+	{
+	return chunked_list_get(playlist, current);
 	}

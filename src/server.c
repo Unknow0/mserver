@@ -37,6 +37,8 @@ int bcast_sock;
 extern player_t *player;
 
 logger_t *sl=NULL;
+char *status_buf;
+size_t status_buf_len=0;
 void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr *si, int silen)
 	{
 	buf[len]=0;
@@ -52,17 +54,19 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 		player_setstate(player, PLAYER_STATE_STOP);
 	else if(strncmp("next", buf, 4)==0)
 		{
-		const char *file=lib_canonize(playlist_next());
+		char *file=lib_canonize(lib, playlist_next());
 		player_play(player, file);
+		free(file);
 		}
 	else if(strncmp("play", buf, 4)==0)
 		{
-		const char *file;
+		char *file;
 		if(len<=5)
-			file=lib_canonize(playlist_next());
+			file=lib_canonize(lib, playlist_next());
 		else
-			file=lib_canonize(buf+5);
+			file=lib_canonize(lib, buf+5);
 		player_play(player, file);
+		free(file);
 		}
 	else if(strncmp("set ", buf, 4)==0)
 		{
@@ -84,19 +88,33 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 		}
 	else if(strncmp("status", buf, 6)==0)
 		{
-
+		lib_entry *e=playlist_current();
+		int len=snprintf(status_buf, status_buf_len, "%s - %s (%s)",  e->name, e->group->str, e->album->str);
+		if(len>=status_buf_len)
+			{
+			char *tmp=realloc(status_buf, len+1);
+			if(tmp)
+				{
+				status_buf=tmp;
+				status_buf_len=len+1;
+				snprintf(status_buf, status_buf_len, "%s - %s (%s)",  e->name, e->group->str, e->album->str);
+				}
+			else
+				status_buf[0]=0;
+			}
+		sendto(sock, status_buf, len+1, 0, si, silen);
 		}
 	else if(strncmp("lib", buf, 3)==0)
 		{
-		struct str_chunk *c=lib_str->head;
-		char *b=malloc(2+lib_str->chunk_size);
+		struct str_chunk *c=lib->lib_str->head;
+		char *b=malloc(2+lib->lib_str->chunk_size);
 		unsigned short int i=0;
 		while(c!=NULL)
 			{
 			i++;
 			c=c->next;
 			}
-		c=lib_str->head;
+		c=lib->lib_str->head;
 		if(len>4) // index asked
 			{
 			int off=atoi(buf+4);
@@ -143,7 +161,7 @@ server_t *server_init(unsigned short int port)
 	server_t *s=malloc(sizeof(server_t));
 	if(s==NULL)
 		return NULL;
-	sl=get_logger("mserver.server");
+	sl=get_logger("server");
 	s->sock = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s->sock < 0)
 		{

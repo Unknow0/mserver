@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <libavdevice/avdevice.h>
 #include <libavformat/avformat.h>
@@ -41,6 +42,7 @@
 
 #include <malloc.h>
 
+lib_t *lib;
 player_t *player;
 server_t *server;
 
@@ -54,13 +56,15 @@ void close_handler(int sig)
 
 int main(int argc, char *argv[])
 	{
+	int ret;
 	struct sigaction act;
+
 #ifdef HAVE_LIBBCM_HOST
 	bcm_host_init();
 #endif
-	cfg_init();
-	logger_init();
-
+	cfg_init(NULL);
+	logger_init("mserver.logger");
+	
 	av_log_set_level(40);
 	av_register_all();
 	avdevice_register_all();
@@ -68,7 +72,7 @@ int main(int argc, char *argv[])
 	avfilter_register_all();
 
 	string_init();
-	ml=get_logger("mserver");
+	ml=get_logger("default");
 	info(ml, "Starting mserver");
 	srand(time(NULL));
 
@@ -107,12 +111,13 @@ int main(int argc, char *argv[])
 		}
 	info(ml, "player init done\n");
 
-	if(lib_init(cfg_get_string("mserver.dbfile"), cfg_get_string("mserver.libdir")))
+	lib=lib_create(cfg_get_string("mserver.dbfile"), cfg_get_string("mserver.libdir"));
+	if(!lib)
 		{
 		fatal(ml, "error while initializing in db");
 		return 1;
 		}
-	lib_str_init();
+	lib_str_init(lib);
 	playlist_init();
 	player->on_eof=&playlist_eof;
 
@@ -127,8 +132,7 @@ int main(int argc, char *argv[])
 	server_mainloop(server);
 
 	playlist_deinit();
-	lib_str_deinit();
-	lib_deinit();
+	lib_destroy(lib);
 	player_destroy(player);
 	logger_deinit();
 	cfg_deinit();

@@ -15,47 +15,16 @@
  * with mserver; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  ******************************************************************************/
-#ifndef _LIB_H
-#define _LIB_H
+#ifndef _SRC_LCG_H
+#define _SRC_LCG_H
 
-#include <container/chunked_list.h>
-#include <container/chunked_string.h>
-#include <container/string.h>
-#include <container/watch.h>
+typedef lcg_state;
 
-typedef struct
-	{
-	char *path;
-	char *name;
-	string_t *group;
-	string_t *album;
-	unsigned int track;
-	} lib_entry;
+size_t gcd(size_t,size_t);
 
-typedef struct library
-	{
-	const char *dbfile;
-	const char *base_path;
-	size_t base_path_size;
+lcg_state *lcg_create(size_t m);
+void lcg_reset(lcg_state *lcg, size_t m);
 
-	chunked_list_t *entries;
-
-	chunked_string_t *lib_str;
-	pthread_t check_thread;
-
-	watch_t *watch;
-	} lib_t;
-
-extern lib_t *lib;
-
-lib_t *lib_create(const char *libfile, const char *libdir);
-void lib_destroy(lib_t *);
-
-char *lib_canonize(lib_t *, const char *);
-
-void lib_str_init(lib_t *);
-void lib_str_reset(lib_t *);
-void lib_str_print(lib_t *);
-void lib_str_deinit(lib_t *);
+size_t lcg_next(lcg_state *lcg);
 
 #endif

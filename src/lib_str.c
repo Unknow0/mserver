@@ -22,55 +22,53 @@
 
 #include "lib.h"
 
-chunked_string_t *lib_str;
-
-void lib_str_init()
+void lib_str_init(lib_t *lib)
 	{
-	lib_str=chunked_string_create(1024);
-	lib_str_reset();
+	lib->lib_str=chunked_string_create(1024);
+	lib_str_reset(lib);
 	}
 
-void lib_str_deinit()
+void lib_str_deinit(lib_t *lib)
 	{
-	chunked_string_destroy(lib_str);
+	chunked_string_destroy(lib->lib_str);
 	}
 
 char buf[5];
 extern logger_t *ll;
-void lib_str_reset()
+void lib_str_reset(lib_t *lib)
 	{
-	chunked_string_clear(lib_str);
-	chunked_string_add(lib_str, "{");
-	iterator_t *it=chunked_list_iterator(lib);
+	chunked_string_clear(lib->lib_str);
+	chunked_string_add(lib->lib_str, "{");
+	iterator_t *it=chunked_list_iterator(lib->entries);
 	lib_entry *e=NULL;
 	while(iterator_has_next(it))
 		{
 		if(e!=NULL)
-			chunked_string_add(lib_str, ",");
+			chunked_string_add(lib->lib_str, ",");
 
 		e=iterator_next(it);
 		
-		chunked_string_add(lib_str, "\"");
-		chunked_string_add(lib_str, e->path);
-		chunked_string_add(lib_str, "\":{\"title\":\"");
-		chunked_string_add(lib_str, e->name);
-		chunked_string_add(lib_str, "\",\"group\":\"");
-		chunked_string_add(lib_str, e->group->str);
-		chunked_string_add(lib_str, "\",\"album\":\"");
-		chunked_string_add(lib_str, e->album->str);
-		chunked_string_add(lib_str, "\",\"track\":");
+		chunked_string_add(lib->lib_str, "\"");
+		chunked_string_add(lib->lib_str, e->path);
+		chunked_string_add(lib->lib_str, "\":{\"title\":\"");
+		chunked_string_add(lib->lib_str, e->name);
+		chunked_string_add(lib->lib_str, "\",\"group\":\"");
+		chunked_string_add(lib->lib_str, e->group->str);
+		chunked_string_add(lib->lib_str, "\",\"album\":\"");
+		chunked_string_add(lib->lib_str, e->album->str);
+		chunked_string_add(lib->lib_str, "\",\"track\":");
 		snprintf(buf, 5, "%d", e->track);
-		chunked_string_add(lib_str, buf);
-		chunked_string_add(lib_str, "}");
+		chunked_string_add(lib->lib_str, buf);
+		chunked_string_add(lib->lib_str, "}");
 		}
-	chunked_string_add(lib_str, "}");
+	chunked_string_add(lib->lib_str, "}");
 	iterator_dispose(it);
 	}
 
-void lib_str_print()
+void lib_str_print(lib_t *lib)
 	{
 	size_t i;
-	struct str_chunk *c=lib_str->head;
+	struct str_chunk *c=lib->lib_str->head;
 	while(c!=NULL)
 		{
 		for(i=0; i<c->len; i++)

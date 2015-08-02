@@ -29,7 +29,6 @@
 int main(int argc, char *argv[])
 	{
 	struct addrinfo *si;
-	struct sockaddr_in sin;
 	int s, i;
 	char buf[BUF_SIZE];
 	if(argc<3)
@@ -57,15 +56,6 @@ int main(int argc, char *argv[])
 		}
 	*(b-1)='\0';
 
-	sin.sin_family=AF_INET;
-	sin.sin_port=htons(0);
-	sin.sin_addr.s_addr=inet_addr(argv[1]);
-
-	if(bind(s, (const struct sockaddr*)&sin, sizeof(sin)))
-		{
-		perror("can't bind so can't get response");
-		}
-	
 	printf("send '%s'\n", buf);
 	if(sendto(s, buf, strlen(buf), 0, si->ai_addr, sizeof(*si->ai_addr))==-1)
 		{
@@ -81,19 +71,16 @@ int main(int argc, char *argv[])
 			{
 			buf[size]=0;
 			i=(unsigned short *)buf;
-			if(*i==157)
+			printf("%s\n", buf+2);
+			if(*i==0)
 				break;
 			}
-		printf("%hu: ", *i);
-		printf("%s\n", buf+2);
 		}
-/*	else
+	else if(strcmp(argv[3], "status")==0)
 		{
-		while((size=recvfrom(s, buf, BUF_SIZE, 0, NULL, NULL))>0)
-			{
-			buf[size]=0;
-			printf("%s\n", buf);
-			}
+		size=recvfrom(s, buf, BUF_SIZE, 0, NULL, NULL);
+		buf[size]=0;
+		printf("%s\n", buf);
 		}
-*/	return 0;
+	return 0;
 	}

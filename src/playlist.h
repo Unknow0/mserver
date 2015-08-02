@@ -19,12 +19,14 @@
 #define _PLAYLIST_H
 
 #include <libffplay.h>
+#include "lib.h"
 
 #define PLAYLIST_RANDOM	(1<<0)
 #define PLAYLIST_REPEAT (1<<1)
 #define PLAYLIST_SINGLE (1<<2)
 
 void playlist_init();
+void playlist_add(lib_entry *e);
 
 const char *playlist_next();
 
@@ -38,5 +40,7 @@ void playlist_eof(player_t *p);
 
 void playlist_reset();
 void playlist_deinit();
+
+lib_entry *playlist_current();
 
 #endif
