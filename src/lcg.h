@@ -18,7 +18,14 @@
 #ifndef _SRC_LCG_H
 #define _SRC_LCG_H
 
-typedef lcg_state;
+typedef struct
+	{
+	size_t a;
+	size_t c;
+	size_t m;
+	size_t x;
+	size_t max;
+	} lcg_state;
 
 size_t gcd(size_t,size_t);
 

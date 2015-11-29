@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  ******************************************************************************/
 #include <stdio.h>
-#include <container/chunked_list.h>
+#include <utils/chunked_list.h>
 #include "playlist.h"
 #include "lcg.h"
 
@@ -37,8 +37,7 @@ void playlist_init()
 
 	playlist_reset();
 	srandom(time(NULL));
-	lcg=lcg_create(playlist->size);
-	last=lcg_next(lcg);
+	last=0;
 	}
 
 const char *playlist_next()
@@ -52,7 +51,7 @@ const char *playlist_next()
 		}
 	if(playlist->size==0)
 		return NULL;
-	if(flags&PLAYLIST_RANDOM!=0)
+	if(flags&PLAYLIST_RANDOM)
 		{
 		current=lcg_next(lcg);
 		if(current==last)
@@ -112,6 +111,12 @@ void playlist_filter_add(char *f)
 		}
 	free(it);
 	chunked_list_add(filters, f);
+
+	if(flags&PLAYLIST_RANDOM)
+		{
+		lcg=lcg_create(playlist->size);
+		last=lcg_next(lcg);
+		}
 	}
 
 void playlist_filter_del(char *f)
@@ -178,6 +183,12 @@ void playlist_reset()
 		}
 	free(i);
 	free(it);
+
+	if(flags&PLAYLIST_RANDOM)
+		{
+		lcg=lcg_create(playlist->size);
+		last=lcg_next(lcg);
+		}
 	}
 
 void playlist_set_next(char *n)
@@ -188,6 +199,11 @@ void playlist_set_next(char *n)
 void playlist_flags_set(int f)
 	{
 	flags|=f;
+	if(flags&PLAYLIST_RANDOM)
+		{
+		lcg=lcg_create(playlist->size);
+		last=lcg_next(lcg);
+		}
 	}
 void playlist_flags_unset(int f)
 	{

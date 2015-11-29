@@ -26,8 +26,8 @@
 #include <pthread.h>
 
 #include <logger.h>
-#include <container/iterator.h>
-#include <container/watch.h>
+#include <utils/iterator.h>
+#include <utils/watch.h>
 #include "lib.h"
 
 int watch_fd;
@@ -65,7 +65,7 @@ int lib_read(lib_t *lib)
 	size_t buf_len=256;
 	char *buf=malloc(buf_len);
 	int fd=open(lib->dbfile, O_RDONLY);
-	if(fd)
+	if(fd>=0)
 		{
 		lib_entry e;
 		size_t s, l;
@@ -118,12 +118,25 @@ void tag_reader(const char *name, const char *value, void* data)
 		entry->track=atoi(value);
 	}
 
+lib_entry *find(lib_t *lib, char *path)
+	{
+	iterator_t *it=chunked_list_iterator(lib->entries);
+	while(iterator_has_next(it))
+		{
+		lib_entry *e=iterator_next(it);
+		if(strcmp(e->path, path)==0)
+			return e;
+		}
+	return NULL;
+	}
+
 int filecount;
 string_t *empty;
 void parse_file(lib_t *lib, char *path, lib_entry *entry)
 	{
 	size_t pathsize=strlen(path)-lib->base_path_size;
 	debug(ll, "parse_file '%s'", path);
+	
 	entry->path=strdup(path+lib->base_path_size);
 	entry->group=empty;
 	entry->album=empty;
@@ -184,7 +197,8 @@ void parse_dir(lib_t *lib, char **name, size_t l, lib_entry *entry)
 			memcpy(*name+s, d->d_name, s2+1);
 			(*name)[s+s2]=0;
 			// read file metadata
-			parse_file(lib, *name, entry);
+			if(!find(lib, *name+lib->base_path_size))
+				parse_file(lib, *name, entry);
 			}
 		}
 	info(ll, "parsed %d files, %d keept", filecount, lib->entries->size);
@@ -261,6 +275,7 @@ void lib_watch_event(struct inotify_event *e, const char *path, void *payload)
 	char *f=malloc(l+1);
 	strcpy(f, path);
 	strcat(f, e->name);
+	debug(ll, "watch_even '%s%s'", path, e->name);
 	if(e->mask&IN_CLOSE_WRITE || e->mask&IN_CREATE || e->mask&IN_MOVED_TO)
 		{
 		struct stat buf;

@@ -18,10 +18,11 @@
 #ifndef _LIB_H
 #define _LIB_H
 
-#include <container/chunked_list.h>
-#include <container/chunked_string.h>
-#include <container/string.h>
-#include <container/watch.h>
+#include <utils/chunked_list.h>
+#include <utils/chunked_string.h>
+#include <utils/string.h>
+#include <utils/watch.h>
+#include <utils/bus.h>
 
 typedef struct
 	{
@@ -44,6 +45,8 @@ typedef struct library
 	pthread_t check_thread;
 
 	watch_t *watch;
+
+	bus_t *bus;
 	} lib_t;
 
 extern lib_t *lib;

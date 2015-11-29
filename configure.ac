@@ -37,7 +37,7 @@ AC_CHECK_LIB([json-c], [json_object_new_object], [],
 	AC_MSG_ERROR([install json-c: https://github.com/json-c/json-c/])
 	)
 
-PKG_CHECK_MODULES([DEPS], [libavdevice libavformat libavcodec libavutil libavfilter libffplay logger libcfg container])
+PKG_CHECK_MODULES([DEPS], [libavdevice libavformat libavcodec libavutil libavfilter libffplay logger libcfg utils])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h netdb.h stdlib.h string.h sys/socket.h unistd.h])

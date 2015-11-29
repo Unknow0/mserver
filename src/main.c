@@ -33,7 +33,7 @@
 
 #include <logger.h>
 #include <cfg.h>
-#include <container/string.h>
+#include <utils/string.h>
 #include <libffplay.h>
 
 #include "server.h"

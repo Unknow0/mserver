@@ -17,8 +17,8 @@
  ******************************************************************************/
 #include <stdio.h>
 #include <logger.h>
-#include <container/chunked_list.h>
-#include <container/chunked_string.h>
+#include <utils/chunked_list.h>
+#include <utils/chunked_string.h>
 
 #include "lib.h"
 
