@@ -47,7 +47,7 @@ int lib_write(lib_t *lib)
 		while(iterator_has_next(it))
 			{
 			lib_entry *e=iterator_next(it);
-			size_t len=strlen(e->path)+strlen(e->group->str)+strlen(e->album->str)+strlen(e->name)+4;
+			size_t len=strlen(e->path)+e->group->len+e->album->len+strlen(e->name)+4;
 			write(fd, &len, sizeof(size_t));
 			write(fd, e->path, strlen(e->path)+1);
 			write(fd, e->group->str, e->group->len+1);
@@ -80,18 +80,17 @@ int lib_read(lib_t *lib)
 				char *t=realloc(buf, l);
 				if(!t)
 					return 1;
-				// TODO check error
 				buf_len=l;
 				buf=t;
 				b=buf;
 				}
 			read(fd, b, l);
 			e.path=strdup(b);
-			b+=strlen(e.path);
+			b+=strlen(e.path)+1;
 			e.group=string_create_unique(b);
-			b+=e.group->len;
+			b+=e.group->len+1;
 			e.album=string_create_unique(b);
-			b+=e.album->len;
+			b+=e.album->len+1;
 			e.name=strdup(b);
 			chunked_list_add(lib->entries, &e);
 			}
@@ -120,14 +119,18 @@ void tag_reader(const char *name, const char *value, void* data)
 
 lib_entry *find(lib_t *lib, char *path)
 	{
+	lib_entry *e=NULL;
 	iterator_t *it=chunked_list_iterator(lib->entries);
 	while(iterator_has_next(it))
 		{
-		lib_entry *e=iterator_next(it);
+		e=iterator_next(it);
 		if(strcmp(e->path, path)==0)
-			return e;
+			goto end;
 		}
-	return NULL;
+	e=NULL;
+end:
+	free(it);
+	return e;
 	}
 
 int filecount;
@@ -340,9 +343,9 @@ lib_t *lib_create(const char *dbfile, const char *libdir)
 	
 	lib->dbfile=strdup(dbfile);
 	lib_read(lib);
-	pthread_create(&lib->check_thread, NULL, check_lib, lib);
-	pthread_join(lib->check_thread, NULL);
-//	check_lib(lib);
+//	pthread_create(&lib->check_thread, NULL, check_lib, lib);
+//	pthread_join(lib->check_thread, NULL);
+	check_lib(lib);
 
 	return lib;
 

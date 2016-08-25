@@ -33,6 +33,35 @@ void lib_str_deinit(lib_t *lib)
 	chunked_string_destroy(lib->lib_str);
 	}
 
+void append(char *str)
+	{
+	char b[2]={0, 0};
+	while(*str!=0)
+		{
+		b[0]=*str;
+		switch(*str)
+			{
+			case '\\':
+			case '"':
+				chunked_string_add(lib->lib_str, "\\");
+				chunked_string_add(lib->lib_str, b);
+				break;
+			case '\n':
+				chunked_string_add(lib->lib_str, "\\n");
+				break;
+			case '\r':
+				chunked_string_add(lib->lib_str, "\\r");
+				break;
+			case '\t':
+				chunked_string_add(lib->lib_str, "\\t");
+				break;
+			default:
+				chunked_string_add(lib->lib_str, b);
+			}
+		str++;
+		}
+	}
+
 char buf[5];
 extern logger_t *ll;
 void lib_str_reset(lib_t *lib)
@@ -49,13 +78,13 @@ void lib_str_reset(lib_t *lib)
 		e=iterator_next(it);
 		
 		chunked_string_add(lib->lib_str, "\"");
-		chunked_string_add(lib->lib_str, e->path);
+		append(e->path);
 		chunked_string_add(lib->lib_str, "\":{\"title\":\"");
-		chunked_string_add(lib->lib_str, e->name);
+		append(e->name);
 		chunked_string_add(lib->lib_str, "\",\"group\":\"");
-		chunked_string_add(lib->lib_str, e->group->str);
+		append(e->group->str);
 		chunked_string_add(lib->lib_str, "\",\"album\":\"");
-		chunked_string_add(lib->lib_str, e->album->str);
+		append(e->album->str);
 		chunked_string_add(lib->lib_str, "\",\"track\":");
 		snprintf(buf, 5, "%d", e->track);
 		chunked_string_add(lib->lib_str, buf);
