@@ -28,6 +28,7 @@
 #include <logger.h>
 #include <utils/iterator.h>
 #include <utils/watch.h>
+#include <libffplay.h>
 #include "lib.h"
 
 int watch_fd;
@@ -57,7 +58,7 @@ int lib_write(lib_t *lib)
 		free(it);
 		close(fd);
 		}
-	debug(ll, "done reading libfile");
+	debug(ll, "done writing libfile");
 	}
 
 int lib_read(lib_t *lib)
@@ -169,8 +170,13 @@ void parse_dir(lib_t *lib, char **name, size_t l, lib_entry *entry)
 	{
 	int s=strlen(*name);
 	struct dirent *d;
-	watch(lib->watch, *name);
 	DIR *dir=opendir(*name);
+	if(!dir)
+		{
+		error(ll, "failed to read dir '%s'", *name);
+		return;
+		}
+	watch(lib->watch, *name);
 	while((d=readdir(dir))!=NULL)
 		{
 		if(d->d_name[0]=='.')	// skip hidden file

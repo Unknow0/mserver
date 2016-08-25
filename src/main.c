@@ -54,6 +54,10 @@ void close_handler(int sig)
 	info(ml, "kill");
 	}
 
+void on_state_change(struct player *p)
+	{
+	}
+
 int main(int argc, char *argv[])
 	{
 	int ret;
@@ -120,6 +124,7 @@ int main(int argc, char *argv[])
 	lib_str_init(lib);
 	playlist_init();
 	player->on_eof=&playlist_eof;
+	player->on_state_change=&on_state_change;
 
 	info(ml, "lib init done");
 	server=server_init(cfg_get_int("mserver.port"));
