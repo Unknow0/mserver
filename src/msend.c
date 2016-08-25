@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 			{
 			buf[size]=0;
 			i=(unsigned short *)buf;
-			printf("%s\n", buf+2);
+			printf("%s", buf+2);
 			if(*i==0)
 				break;
 			}
