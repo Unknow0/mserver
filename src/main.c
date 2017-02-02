@@ -63,13 +63,15 @@ int main(int argc, char *argv[])
 	int ret;
 	struct sigaction act;
 
+	daemon(0, 0);
+
 #ifdef HAVE_LIBBCM_HOST
 	bcm_host_init();
 #endif
 	cfg_init(NULL);
 	logger_init("mserver.logger");
 	
-	av_log_set_level(40);
+	av_log_set_level(AV_LOG_QUIET);
 	av_register_all();
 	avdevice_register_all();
 	avcodec_register_all();

@@ -33,7 +33,7 @@ void lib_str_deinit(lib_t *lib)
 	chunked_string_destroy(lib->lib_str);
 	}
 
-void append(char *str)
+void append(lib_t *lib, char *str)
 	{
 	char b[2]={0, 0};
 	while(*str!=0)
@@ -78,13 +78,13 @@ void lib_str_reset(lib_t *lib)
 		e=iterator_next(it);
 		
 		chunked_string_add(lib->lib_str, "\"");
-		append(e->path);
+		append(lib, e->path);
 		chunked_string_add(lib->lib_str, "\":{\"title\":\"");
-		append(e->name);
+		append(lib, e->name);
 		chunked_string_add(lib->lib_str, "\",\"group\":\"");
-		append(e->group->str);
+		append(lib, e->group->str);
 		chunked_string_add(lib->lib_str, "\",\"album\":\"");
-		append(e->album->str);
+		append(lib, e->album->str);
 		chunked_string_add(lib->lib_str, "\",\"track\":");
 		snprintf(buf, 5, "%d", e->track);
 		chunked_string_add(lib->lib_str, buf);
