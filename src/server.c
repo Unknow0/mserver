@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
@@ -140,6 +141,7 @@ void server_parse_msg(int sock, unsigned char *buf, ssize_t len, struct sockaddr
 				memcpy(b, &i, 2);
 				memcpy(b+2, c->data, c->len);
 				sendto(sock, b, c->len+2, 0, si, silen);
+				usleep(250);
 				c=c->next;
 				}
 			}
